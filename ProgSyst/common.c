@@ -7,13 +7,16 @@ int creer_socket(int type, int *port_num)
 
    if (fd == -1) // if there is an error, then
    {
-     error( "Error socket couldnt be created" ); // a message will be sent
+     perror( "Error socket couldnt be created" ); // a message will be sent
    }
 
    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
    {
-     error("ERROR setting socket options");
+     perror("ERROR setting socket options");
    }
+
+   *port_num = rand()%65535+1024;
+
    return fd;
 }
 

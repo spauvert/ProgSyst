@@ -55,17 +55,15 @@ int main(int argc, char *argv[])
        if (fp == NULL)
            exit(EXIT_FAILURE);
 
-<<<<<<< HEAD
        while ((read = getline(&line, &len, fp)) != -1) {
            printf("Reception d'une ligne de longueur %zu :\n", read);
            printf("%s", line);
-=======
+
        while ((read = getline(&line, &len, fp)) != -1) { // read the number of lines in our machine file
     	   num_machines =+ 1;
->>>>>>> b7b8c40a17b089d10a1eb73abae8e8e31fec7942
        }
 
-       char * tab_machines[num_machines]; // create a table in which we can find the machines names
+       char tab_machines[num_machines]; // create a table in which we can find the machines names
        int index_machines = 0;
 
        while ((read = getline(&line, &len, fp)) != -1) { // add machines to the table

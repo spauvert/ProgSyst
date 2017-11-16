@@ -34,6 +34,7 @@ void sigchld_handler( int sig)
       nom_fils--;
     }
   } while( pid > 0 )
+
 }
 
 
@@ -80,8 +81,8 @@ int main(int argc, char *argv[])
       printf("Reception d'une ligne de longueur %zu :\n", read);
       printf("%s", line);
 
-      while ((read = getline(&line, &len, fp)) != -1)
-      { // read the number of lines in our machine file
+      while ((read = getline(&line, &len, fp)) != -1) // read the number of lines in our machine file
+      {
         num_machines =+ 1;
       }
 
@@ -111,8 +112,8 @@ int main(int argc, char *argv[])
         pid = fork();
         if(pid == -1) ERROR_EXIT("fork");
 
-        if (pid == 0)
-        { /* fils */
+        if (pid == 0) /* fils */
+        {
 
           /* redirection stdout */
 
@@ -125,8 +126,8 @@ int main(int argc, char *argv[])
 
         }
         else
-        if(pid > 0)
-        { /* pere */
+        if(pid > 0) /* pere */
+        {
           /* fermeture des extremites des tubes non utiles */
           num_procs_creat++;
         }

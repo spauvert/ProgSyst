@@ -1,17 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include <sys/mman.h>
+
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <signal.h>
 
 /* autres includes (eventuellement) */
+
+volatile uint64_t num_fils =0;
 
 #define ERROR_EXIT(str) {perror(str);exit(EXIT_FAILURE);}
 

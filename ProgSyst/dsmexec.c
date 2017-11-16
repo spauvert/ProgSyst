@@ -20,20 +20,6 @@ void sigchld_handler( int sig)
 {
   /* on traite les fils qui se terminent */
   /* pour eviter les zombies */
-  pid_t pid;
-
-  sigset_t mask, old;
-  sigemptyset( &mask); // Declaration du mask et initialisation
-  sigaddset( &add, SIGCHILD);
-
-  do
-  {
-    pid = waitpid( -1, NULL, WNOHANG);
-    if ( pid > 0 )
-    {
-      nom_fils--;
-    }
-  } while( pid > 0 )
 
 }
 
@@ -52,12 +38,6 @@ int main(int argc, char *argv[])
     int i;
 
     /* Mise en place d'un traitant pour recuperer les fils zombies*/
-    pid_t pid;
-    struct sigaction action;
-
-    memset( &action, 0, sizeof( struct sigaction));
-    action.sa_handler = sigchld_handler;
-    sigaction( SIGCHILD, &action, NULL);
 
 
     /* lecture du fichier de machines */
@@ -73,8 +53,16 @@ int main(int argc, char *argv[])
     fp = fopen("./machine_file", "r");
     int num_machines;
     num_machines = 0;
+<<<<<<< HEAD
 
     if (fp == NULL)
+=======
+    if (fp == NULL)
+    {
+      exit(EXIT_FAILURE);
+    }
+    while ((read = getline(&line, &len, fp)) != -1)
+>>>>>>> refs/remotes/origin/master
     {
       exit(EXIT_FAILURE);
     }
@@ -102,7 +90,8 @@ int main(int argc, char *argv[])
       /* + ecoute effective */
 
       /* creation des fils */
-      for(i = 0; i < num_procs ; i++) {
+      for(i = 0; i < num_procs ; i++)
+      {
 
         /* creation du tube pour rediriger stdout */
 
@@ -125,15 +114,18 @@ int main(int argc, char *argv[])
 
         }
         else
-        if(pid > 0) /* pere */
         {
-          /* fermeture des extremites des tubes non utiles */
-          num_procs_creat++;
+          if(pid > 0) /* pere */
+          {
+            /* fermeture des extremites des tubes non utiles */
+            num_procs_creat++;
+          }
         }
       }
 
 
-      for(i = 0; i < num_procs ; i++){
+      for(i = 0; i < num_procs ; i++)
+      {
 
         /* on accepte les connexions des processus dsm */
 
@@ -161,14 +153,15 @@ int main(int argc, char *argv[])
       jusqu'� ce qu'ils soient inactifs (ie fermes par les
       processus dsm ecrivains de l'autre cote ...)
 
-    };
-    */
+      };
+      */
 
-    /* on attend les processus fils */
+      /* on attend les processus fils */
 
-    /* on ferme les descripteurs proprement */
+      /* on ferme les descripteurs proprement */
 
-    /* on ferme la socket d'ecoute */
-  }
+      /* on ferme la socket d'ecoute */
+      }
   exit(EXIT_SUCCESS);
+  }
 }

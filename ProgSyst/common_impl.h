@@ -17,7 +17,7 @@
 
 /* autres includes (eventuellement) */
 
-volatile uint64_t num_fils =0;
+volatile uint64_t num_fils = 0;
 
 #define ERROR_EXIT(str) {perror(str);exit(EXIT_FAILURE);}
 

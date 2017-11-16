@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
   {
     usage();
   }
+
   else
   {
     pid_t pid;
@@ -43,20 +44,37 @@ int main(int argc, char *argv[])
     /* 2- on recupere les noms des machines : le nom de */
     /* la machine est un des elements d'identification */
 
-    FILE * fp;
-    char * line = NULL;
-    size_t len = 0;
-    ssize_t read;
+    FILE * fp; // pointer on the file
+    char * line = NULL; // pointer on the beginning of the line in the file
+    size_t len = 0; // length of the line
+    ssize_t read; // number of read characters
 
     fp = fopen("./machine_file", "r");
+    int num_machines;
+    num_machines = 0;
        if (fp == NULL)
            exit(EXIT_FAILURE);
 
+<<<<<<< HEAD
        while ((read = getline(&line, &len, fp)) != -1) {
            printf("Reception d'une ligne de longueur %zu :\n", read);
            printf("%s", line);
+=======
+       while ((read = getline(&line, &len, fp)) != -1) { // read the number of lines in our machine file
+    	   num_machines =+ 1;
+>>>>>>> b7b8c40a17b089d10a1eb73abae8e8e31fec7942
        }
-       if (line)
+
+       char * tab_machines[num_machines]; // create a table in which we can find the machines names
+       int index_machines = 0;
+
+       while ((read = getline(&line, &len, fp)) != -1) { // add machines to the table
+          	   tab_machines[index_machines] = line;
+          	   index_machines =+ 1;
+          	   printf("%s added to machines table \n", line);
+             }
+
+       if (line) // release the line pointer
            free(line);
 
     /* creation de la socket d'ecoute */

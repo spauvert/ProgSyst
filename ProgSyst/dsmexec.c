@@ -53,36 +53,45 @@ int main(int argc, char *argv[])
     fp = fopen("./machine_file", "r");
     int num_machines;
     num_machines = 0;
+<<<<<<< HEAD
 
+=======
+
+>>>>>>> be516ffdfe847a807da61d29e9f5f1a58ed2fa25
     if (fp == NULL)
     {
-      exit(EXIT_FAILURE);
+    	exit(EXIT_FAILURE);
     }
+
+<<<<<<< HEAD
+    while ((read = getline(&line, &len, fp)) != -1)
+=======
+    while ((read = getline(&line, &len, fp)) != -1) // read the number of lines in our machine file
+>>>>>>> be516ffdfe847a807da61d29e9f5f1a58ed2fa25
+    {
+    	num_machines =+ 1;
+    }
+
+    char tab_machines[num_machines]; // create a table in which we can find the machines names
+    int index_machines = 0;
 
     while ((read = getline(&line, &len, fp)) != -1)
-    {
-      exit(EXIT_FAILURE);
+    { // add machines to the table
+    	tab_machines[index_machines] = line;
+    	index_machines =+ 1;
+    	printf("%s added to machines table \n", line);
     }
 
-      while ((read = getline(&line, &len, fp)) != -1) // read the number of lines in our machine file
-      {
-        num_machines =+ 1;
-      }
-
-      char tab_machines[num_machines]; // create a table in which we can find the machines names
-      int index_machines = 0;
-
-      while ((read = getline(&line, &len, fp)) != -1)
-      { // add machines to the table
-        tab_machines[index_machines] = line;
-        index_machines =+ 1;
-        printf("%s added to machines table \n", line);
-      }
-
+<<<<<<< HEAD
       if (line) // release the line pointer
       {
       free(line);
       }
+=======
+    if (line) { // release the line pointer
+    	free(line);
+    }
+>>>>>>> be516ffdfe847a807da61d29e9f5f1a58ed2fa25
 
       /* creation de la socket d'ecoute */
       /* + ecoute effective */

@@ -4,9 +4,12 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
+#include <netdb.h>
+#include <netinet/in.h>
 
 /* autres includes (eventuellement) */
 

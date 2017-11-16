@@ -1,14 +1,19 @@
 #include "common_impl.h"
 
-int creer_socket(int prop, int *port_num)
+int creer_socket(int type, int *port_num)
 {
-   int fd = 0;
+   int fd = socket(AF_INET,type,IPPROTO_TCP); // A socket is created here
+   int yes = 1;
 
-   /* fonction de creation et d'attachement */
-   /* d'une nouvelle socket */
-   /* renvoie le numero de descripteur */
-   /* et modifie le parametre port_num */
+   if (fd == -1) // if there is an error, then
+   {
+     error( "Error socket couldnt be created" ); // a message will be sent
+   }
 
+   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
+   {
+     error("ERROR setting socket options");
+   }
    return fd;
 }
 

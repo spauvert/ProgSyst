@@ -43,29 +43,8 @@ int main(int argc, char *argv[])
     /* 2- on recupere les noms des machines : le nom de */
     /* la machine est un des elements d'identification */
 
-<<<<<<< HEAD
     /* creation de la socket d'ecoute */
     /* + ecoute effective */
-=======
-     FILE * fp;
-     char * line = NULL;
-     size_t len = 0;
-     ssize_t read;
-
-     fp = fopen("./machine_file", "r");
-        if (fp == NULL)
-            exit(EXIT_FAILURE);
-
-        while ((read = getline(&line, &len, fp)) != -1) {
-            printf("Réception d'une ligne de longueur %zu :\n", read);
-            printf("%s", line);
-        }
-        if (line)
-            free(line);
-
-     /* creation de la socket d'ecoute */
-     /* + ecoute effective */
->>>>>>> 1db80cc620649af685dd14c3346c7a8a74050413
 
     /* creation des fils */
     for(i = 0; i < num_procs ; i++) {

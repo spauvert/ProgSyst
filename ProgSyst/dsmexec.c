@@ -53,16 +53,13 @@ int main(int argc, char *argv[])
     fp = fopen("./machine_file", "r");
     int num_machines;
     num_machines = 0;
-<<<<<<< HEAD
 
-    if (fp == NULL)
-=======
     if (fp == NULL)
     {
       exit(EXIT_FAILURE);
     }
+
     while ((read = getline(&line, &len, fp)) != -1)
->>>>>>> refs/remotes/origin/master
     {
       exit(EXIT_FAILURE);
     }
@@ -82,7 +79,8 @@ int main(int argc, char *argv[])
         printf("%s added to machines table \n", line);
       }
 
-      if (line) { // release the line pointer
+      if (line) // release the line pointer
+      {
       free(line);
       }
 

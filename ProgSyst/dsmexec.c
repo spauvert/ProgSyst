@@ -16,10 +16,24 @@ void usage(void)
   exit(EXIT_FAILURE);
 }
 
-void sigchld_handler(int sig)
+void sigchld_handler( int sig)
 {
   /* on traite les fils qui se terminent */
   /* pour eviter les zombies */
+  pid_t pid;
+
+  sigset_t mask, old;
+  sigemptyset( &mask); // Declaration du mask et initialisation
+  sigaddset( &add, SIGCHILD);
+
+  do
+  {
+    pid = waitpid( -1, NULL, WNOHANG);
+    if ( pid > 0 )
+    {
+      nom_fils--;
+    }
+  } while( pid > 0 )
 }
 
 
@@ -37,7 +51,13 @@ int main(int argc, char *argv[])
     int i;
 
     /* Mise en place d'un traitant pour recuperer les fils zombies*/
-    /* XXX.sa_handler = sigchld_handler; */
+    pid_t pid;
+    struct sigaction action;
+
+    memset( &action, 0, sizeof( struct sigaction));
+    action.sa_handler = sigchld_handler;
+    sigaction( SIGCHILD, &action, NULL);
+
 
     /* lecture du fichier de machines */
     /* 1- on recupere le nombre de processus a lancer */
@@ -52,100 +72,103 @@ int main(int argc, char *argv[])
     fp = fopen("./machine_file", "r");
     int num_machines;
     num_machines = 0;
-       if (fp == NULL)
-           exit(EXIT_FAILURE);
+    if (fp == NULL)
+      exit(EXIT_FAILURE);
 
-       while ((read = getline(&line, &len, fp)) != -1) {
-           printf("Reception d'une ligne de longueur %zu :\n", read);
-           printf("%s", line);
+    while ((read = getline(&line, &len, fp)) != -1)
+    {
+      printf("Reception d'une ligne de longueur %zu :\n", read);
+      printf("%s", line);
 
-       while ((read = getline(&line, &len, fp)) != -1) { // read the number of lines in our machine file
-    	   num_machines =+ 1;
-       }
-
-       char tab_machines[num_machines]; // create a table in which we can find the machines names
-       int index_machines = 0;
-
-       while ((read = getline(&line, &len, fp)) != -1) { // add machines to the table
-          	   tab_machines[index_machines] = line;
-          	   index_machines =+ 1;
-          	   printf("%s added to machines table \n", line);
-             }
-
-       if (line) // release the line pointer
-           free(line);
-
-    /* creation de la socket d'ecoute */
-    /* + ecoute effective */
-
-    /* creation des fils */
-    for(i = 0; i < num_procs ; i++) {
-
-      /* creation du tube pour rediriger stdout */
-
-      /* creation du tube pour rediriger stderr */
-
-      pid = fork();
-      if(pid == -1) ERROR_EXIT("fork");
-
-      if (pid == 0)
-      { /* fils */
-
-        /* redirection stdout */
-
-        /* redirection stderr */
-
-        /* Creation du tableau d'arguments pour le ssh */
-
-        /* jump to new prog : */
-        /* execvp("ssh",newargv); */
-
+      while ((read = getline(&line, &len, fp)) != -1)
+      { // read the number of lines in our machine file
+        num_machines =+ 1;
       }
-      else
+
+      char tab_machines[num_machines]; // create a table in which we can find the machines names
+      int index_machines = 0;
+
+      while ((read = getline(&line, &len, fp)) != -1)
+      { // add machines to the table
+        tab_machines[index_machines] = line;
+        index_machines =+ 1;
+        printf("%s added to machines table \n", line);
+      }
+
+      if (line) // release the line pointer
+      free(line);
+
+      /* creation de la socket d'ecoute */
+      /* + ecoute effective */
+
+      /* creation des fils */
+      for(i = 0; i < num_procs ; i++) {
+
+        /* creation du tube pour rediriger stdout */
+
+        /* creation du tube pour rediriger stderr */
+
+        pid = fork();
+        if(pid == -1) ERROR_EXIT("fork");
+
+        if (pid == 0)
+        { /* fils */
+
+          /* redirection stdout */
+
+          /* redirection stderr */
+
+          /* Creation du tableau d'arguments pour le ssh */
+
+          /* jump to new prog : */
+          /* execvp("ssh",newargv); */
+
+        }
+        else
         if(pid > 0)
         { /* pere */
           /* fermeture des extremites des tubes non utiles */
           num_procs_creat++;
         }
-    }
+      }
 
 
-    for(i = 0; i < num_procs ; i++){
+      for(i = 0; i < num_procs ; i++){
 
-      /* on accepte les connexions des processus dsm */
+        /* on accepte les connexions des processus dsm */
 
-      /*  On recupere le nom de la machine distante */
-      /* 1- d'abord la taille de la chaine */
-      /* 2- puis la chaine elle-meme */
+        /*  On recupere le nom de la machine distante */
+        /* 1- d'abord la taille de la chaine */
+        /* 2- puis la chaine elle-meme */
 
-      /* On recupere le pid du processus distant  */
+        /* On recupere le pid du processus distant  */
 
-      /* On recupere le numero de port de la socket */
-      /* d'ecoute des processus distants */
-    }
+        /* On recupere le numero de port de la socket */
+        /* d'ecoute des processus distants */
+      }
 
-    /* envoi du nombre de processus aux processus dsm*/
+      /* envoi du nombre de processus aux processus dsm*/
 
-    /* envoi des rangs aux processus dsm */
+      /* envoi des rangs aux processus dsm */
 
-    /* envoi des infos de connexion aux processus */
+      /* envoi des infos de connexion aux processus */
 
-    /* gestion des E/S : on recupere les caracteres */
-    /* sur les tubes de redirection de stdout/stderr */
-    /* while(1)
-    {
-    je recupere les infos sur les tubes de redirection
-    jusqu'� ce qu'ils soient inactifs (ie fermes par les
-    processus dsm ecrivains de l'autre cote ...)
+      /* gestion des E/S : on recupere les caracteres */
+      /* sur les tubes de redirection de stdout/stderr */
+      /* while(1)
+      {
+      je recupere les infos sur les tubes de redirection
+      jusqu'� ce qu'ils soient inactifs (ie fermes par les
+      processus dsm ecrivains de l'autre cote ...)
 
-  };
-  */
+    };
+    */
 
-  /* on attend les processus fils */
+    /* on attend les processus fils */
 
-  /* on ferme les descripteurs proprement */
+    /* on ferme les descripteurs proprement */
 
-  /* on ferme la socket d'ecoute */
-}
-exit(EXIT_SUCCESS);
+    /* on ferme la socket d'ecoute */
+  }
+  exit(EXIT_SUCCESS);
 }

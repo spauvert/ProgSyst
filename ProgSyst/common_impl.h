@@ -38,3 +38,5 @@ struct dsm_proc {
 typedef struct dsm_proc dsm_proc_t;
 
 int creer_socket(int type, int *port_num);
+void init_main_addr(struct sockaddr_in *serv_addr, char* serv_port);
+int do_bind(int serv_sock, struct sockaddr_in serv_addr, int serv_addr_len);

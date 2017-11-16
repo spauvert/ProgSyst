@@ -35,7 +35,8 @@ int main(int argc, char *argv[])
   {
     pid_t pid;
     int num_procs = 0;
-    int i;
+    int *port_num, i, master_sock;
+    struct sockaddr_in init_addr;
 
     /* Mise en place d'un traitant pour recuperer les fils zombies*/
 
@@ -84,8 +85,13 @@ int main(int argc, char *argv[])
       free(line);
     }
 
-    /* creation de la socket d'ecoute */
-    /* + ecoute effective */
+
+    // Creation and listen of a socket
+
+    master_sock = creer_socket(SOCK_STREAM, port_num); // Create a socket with the domain, type and protocol given
+    init_main_addr( &init_addr, port_num); // Initiation of the Server with a certain port
+    do_bind( master_sock, init_addr, sizeof(init_addr)); // Binds a socket to an address
+    do_listen( master_sock);
 
     /* creation des fils */
     for(i = 0; i < num_procs ; i++)

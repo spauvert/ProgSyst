@@ -73,13 +73,11 @@ int main(int argc, char *argv[])
     fp = fopen("./machine_file", "r");
     int num_machines;
     num_machines = 0;
-    if (fp == NULL)
-      exit(EXIT_FAILURE);
 
-    while ((read = getline(&line, &len, fp)) != -1)
+    if (fp == NULL)
     {
-      printf("Reception d'une ligne de longueur %zu :\n", read);
-      printf("%s", line);
+      exit(EXIT_FAILURE);
+    }
 
       while ((read = getline(&line, &len, fp)) != -1) // read the number of lines in our machine file
       {
@@ -96,8 +94,9 @@ int main(int argc, char *argv[])
         printf("%s added to machines table \n", line);
       }
 
-      if (line) // release the line pointer
+      if (line) { // release the line pointer
       free(line);
+      }
 
       /* creation de la socket d'ecoute */
       /* + ecoute effective */

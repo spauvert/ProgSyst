@@ -15,7 +15,11 @@ int creer_socket(int type, int *port_num)
      perror("ERROR setting socket options");
    }
 
-   *port_num = rand()%65535+1024;
+   int b = 65535;
+   int a = 1024;
+
+   *port_num = rand()%(b-a) +a;
+
 
    return fd;
 }

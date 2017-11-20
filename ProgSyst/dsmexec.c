@@ -27,17 +27,14 @@ void sigchld_handler( int sig)
 int main(int argc, char *argv[])
 {
 
-<<<<<<< HEAD
-  else
-  {
-    pid_t pid;
-    int num_procs = 0;
-    int *port_num, i, master_sock;
-    struct sockaddr_in init_addr;
-=======
-	char * tab_machines;
-	int num_machines = 0;
->>>>>>> c8e29846ae9edbd96515c63a5a0202b0732d1d57
+  pid_t pid;
+  int num_procs = 0;
+  int *port_num, i, master_sock;
+  struct sockaddr_in init_addr;
+
+  char * tab_machines;
+  int num_machines = 0;
+
 
 	if (argc < 3)
 	{
@@ -82,17 +79,7 @@ int main(int argc, char *argv[])
 
 		tab_machines = malloc(num_machines * sizeof(nom_machines_t));
 
-<<<<<<< HEAD
-
-    // Creation and listen of a socket
-
-    master_sock = creer_socket(SOCK_STREAM, port_num); // Create a socket with the domain, type and protocol given
-    init_main_addr( &init_addr, port_num); // Initiation of the Server with a certain port
-    do_bind( master_sock, init_addr, sizeof(init_addr)); // Binds a socket to an address
-    do_listen( master_sock);
-=======
 		int index_machines = 0;
->>>>>>> c8e29846ae9edbd96515c63a5a0202b0732d1d57
 
 		while ((read = getline(&line, &len, fp)) != -1)
 		{ // add machines to the table
@@ -106,8 +93,10 @@ int main(int argc, char *argv[])
 			free(line);
 		}
 
-		/* creation de la socket d'ecoute */
-		/* + ecoute effective */
+    master_sock = creer_socket(SOCK_STREAM, port_num); // Create a socket with the domain, type and protocol given
+    init_main_addr( &init_addr, port_num); // Initiation of the Server with a certain port
+    do_bind( master_sock, init_addr, sizeof(init_addr)); // Binds a socket to an address
+    do_listen( master_sock);
 
 		/* creation des fils */
 		for(i = 0; i < num_procs ; i++)

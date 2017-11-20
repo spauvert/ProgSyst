@@ -16,160 +16,162 @@ void usage(void)
   exit(EXIT_FAILURE);
 }
 
-void sigchld_handler( int sig)
-{
-  /* on traite les fils qui se terminent */
-  /* pour eviter les zombies */
-
-}
-
 
 int main(int argc, char *argv[])
 {
 
   pid_t pid;
-  int num_procs = 0;
-  int *port_num, i, master_sock;
+  int num_procs = 0, index_line = 0, *port_num = 0, i, j, master_sock;
   struct sockaddr_in init_addr;
-
-  char * tab_machines;
-  int num_machines = 0;
+  char *tab_machines, **args;
 
 
-	if (argc < 3)
-	{
-		usage();
-	}
 
-	else
-	{
-		pid_t pid;
-		int num_procs = 0;
-		int i;
+  if (argc < 3)
+  {
+    usage();
+  }
 
-		/* Mise en place d'un traitant pour recuperer les fils zombies*/
+  else
+  {
 
+    /* Mise en place d'un traitant pour recuperer les fils zombies*/
 
-		/* lecture du fichier de machines */
-		/* 1- on recupere le nombre de processus a lancer */
-		/* 2- on recupere les noms des machines : le nom de */
-		/* la machine est un des elements d'identification */
+    struct sigaction action;
+    memset( &action, 0, sizeof( struct sigaction));
+    action.sa_handler = sigchld_handler; // pas besoin de parametre c'est un pointeur de fonction
+    sigaction( SIGCHLD, &action, NULL);
 
-		FILE * fp; // pointer on the file
-		char * line = NULL; // pointer on the beginning of the line in the file
-		size_t len = 0; // length of the line
-		ssize_t read; // number of read characters
+    /* lecture du fichier de machines */
+    /* 1- on recupere le nombre de processus a lancer */
+    /* 2- on recupere les noms des machines : le nom de */
+    /* la machine est un des elements d'identification */
 
-		fp = fopen("../machine_file", "r");
+    FILE * fp; // pointer on the file
+    char * line = NULL; // pointer on the beginning of the line in the file
+    size_t len = 0; // length of the line
+    ssize_t read; // number of read characters
 
-		if (fp == NULL)
-		{
-			exit(EXIT_FAILURE);
-		}
+    fp = fopen("../machine_file", "r");
 
-		while ((read = getline(&line, &len, fp)) != -1)
-		{
-			exit(EXIT_FAILURE);
-		}
+    if (fp == NULL)
+    {
+      exit(EXIT_FAILURE);
+    }
 
-		while ((read = getline(&line, &len, fp)) != -1) // read the number of lines in our machine file
-		{
-			num_machines =+ 1;
-		}
+    while ((read = getline(&line, &len, fp)) != -1) // read the number of lines in our machine file
+    {
+      num_procs++;
+    }
 
-		tab_machines = malloc(num_machines * sizeof(nom_machines_t));
+    tab_machines = malloc(num_procs * sizeof(nom_machines_t));
 
-		int index_machines = 0;
+    while ((read = getline(&line, &len, fp)) != -1) // add machines to the table
+    {
+      tab_machines[index_line] = *line;
+      index_line++;
+      printf("%s added to machines table \n", line);
+    }
 
-		while ((read = getline(&line, &len, fp)) != -1)
-		{ // add machines to the table
-			tab_machines[index_machines] = * line;
-			index_machines =+ 1;
-			printf("%s added to machines table \n", line);
-		}
-
-		if (line) // release the line pointer
-		{
-			free(line);
-		}
+    if (line) // release the line pointer
+    {
+      free(line);
+    }
 
     master_sock = creer_socket(SOCK_STREAM, port_num); // Create a socket with the domain, type and protocol given
     init_main_addr( &init_addr, port_num); // Initiation of the Server with a certain port
     do_bind( master_sock, init_addr, sizeof(init_addr)); // Binds a socket to an address
-    do_listen( master_sock);
+    listen( master_sock, num_procs);
 
-		/* creation des fils */
-		for(i = 0; i < num_procs ; i++)
-		{
+    /* creation des fils */
+    for(i = 0; i < num_procs ; i++)
+    {
+      /* creation du tube pour rediriger stdout */
+      int out[2];
+      pipe(out);
 
-			/* creation du tube pour rediriger stdout */
+      /* creation du tube pour rediriger stderr */
+      int err[2];
+      pipe(err);
 
-			/* creation du tube pour rediriger stderr */
+      pid = fork();
 
-			pid = fork();
-			if(pid == -1) ERROR_EXIT("fork");
+      if(pid == -1) ERROR_EXIT("fork");
 
-			if (pid == 0) /* fils */
-			{
+      if (pid == 0) /* fils */
+      {
 
-				/* redirection stdout */
+        /* redirection stdout */
+        close(out[0]);
+        dup2(STDOUT_FILENO,out[1]);
+        close(STDOUT_FILENO);
 
-				/* redirection stderr */
+        /* redirection stderr */
+        close(err[0]);
+        dup2(STDERR_FILENO,err[1]);
+        close(STDERR_FILENO);
 
-				/* Creation du tableau d'arguments pour le ssh */
+        /* Creation du tableau d'arguments pour le ssh */
+        args = malloc( (argc-3) * sizeof( char));
 
-				/* jump to new prog : */
-				/* execvp("ssh",newargv); */
+        for ( j = 3; j <= argc; j++)
+        {
+          strcpy( args[j-3], argv[j]);
+        }
 
-			}
-			else
-			{
-				if(pid > 0) /* pere */
-				{
-					/* fermeture des extremites des tubes non utiles */
-					num_procs_creat++;
-				}
-			}
-		}
+        /* jump to new prog : */
+        /* execvp("ssh",newargv); */
+
+      }
+      else
+      {
+          /* fermeture des extremites des tubes non utiles */
+          close(out[1]);
+          dup2(out[0],STDOUT_FILENO);
+          close(err[1]);
+          dup2(err[0],STDERR_FILENO);
+          num_procs_creat++;
+      }
+    }
 
 
-		for(i = 0; i < num_procs ; i++)
-		{
+    for(i = 0; i < num_procs ; i++)
+    {
 
-			/* on accepte les connexions des processus dsm */
+      /* on accepte les connexions des processus dsm */
 
-			/*  On recupere le nom de la machine distante */
-			/* 1- d'abord la taille de la chaine */
-			/* 2- puis la chaine elle-meme */
+      /*  On recupere le nom de la machine distante */
+      /* 1- d'abord la taille de la chaine */
+      /* 2- puis la chaine elle-meme */
 
-			/* On recupere le pid du processus distant  */
+      /* On recupere le pid du processus distant  */
 
-			/* On recupere le numero de port de la socket */
-			/* d'ecoute des processus distants */
-		}
+      /* On recupere le numero de port de la socket */
+      /* d'ecoute des processus distants */
+    }
 
-		/* envoi du nombre de processus aux processus dsm*/
+    /* envoi du nombre de processus aux processus dsm*/
 
-		/* envoi des rangs aux processus dsm */
+    /* envoi des rangs aux processus dsm */
 
-		/* envoi des infos de connexion aux processus */
+    /* envoi des infos de connexion aux processus */
 
-		/* gestion des E/S : on recupere les caracteres */
-		/* sur les tubes de redirection de stdout/stderr */
-		/* while(1)
+    /* gestion des E/S : on recupere les caracteres */
+    /* sur les tubes de redirection de stdout/stderr */
+    /* while(1)
     {
     je recupere les infos sur les tubes de redirection
     jusqu'� ce qu'ils soient inactifs (ie fermes par les
     processus dsm ecrivains de l'autre cote ...)
 
   };
-		 */
+  */
 
-		/* on attend les processus fils */
+  /* on attend les processus fils */
 
-		/* on ferme les descripteurs proprement */
+  /* on ferme les descripteurs proprement */
 
-		/* on ferme la socket d'ecoute */
-	}
-	exit(EXIT_SUCCESS);
+  /* on ferme la socket d'ecoute */
+}
+exit(EXIT_SUCCESS);
 }

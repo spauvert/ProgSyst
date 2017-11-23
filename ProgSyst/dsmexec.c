@@ -7,7 +7,7 @@
 dsm_proc_t *proc_array = NULL;
 /* le nombre de processus effectivement crees */
 volatile int num_procs_creat = 0;
-typedef char nom_machines_t[20];
+//typedef char nom_machines_t[20];
 
 void usage(void)
 {
@@ -21,17 +21,15 @@ int main(int argc, char *argv[])
 {
 
   pid_t pid;
-  int num_procs = 0, index_line = 0, *port_num = 0, i, j, master_sock;
+  int num_procs = 0, i, j, master_sock;
   struct sockaddr_in init_addr;
-  char *tab_machines, **args;
-
-
+  char **args, *token;
+  list_dsm_proc lst = NULL;
 
   if (argc < 3)
   {
     usage();
   }
-
   else
   {
 
@@ -47,41 +45,32 @@ int main(int argc, char *argv[])
     /* 2- on recupere les noms des machines : le nom de */
     /* la machine est un des elements d'identification */
 
+    master_sock = creer_socket(SOCK_STREAM); // Create a socket with the domain, type and protocol given
+    init_main_addr( &init_addr); // Initiation of the Server with a certain port
+    do_bind( master_sock, init_addr, sizeof(init_addr)); // Binds a socket to an address
+    listen( master_sock, num_procs);
+
     FILE * fp; // pointer on the file
+    //FILE * start;
     char * line = NULL; // pointer on the beginning of the line in the file
     size_t len = 0; // length of the line
     ssize_t read; // number of read characters
 
-    fp = fopen("../machine_file", "r");
+    fp = fopen("./machine_file", "r");
 
     if (fp == NULL)
     {
       exit(EXIT_FAILURE);
     }
 
-    while ((read = getline(&line, &len, fp)) != -1) // read the number of lines in our machine file
-    {
-      num_procs++;
-    }
-
-    tab_machines = malloc(num_procs * sizeof(nom_machines_t));
-
     while ((read = getline(&line, &len, fp)) != -1) // add machines to the table
     {
-      tab_machines[index_line] = *line;
-      index_line++;
-      printf("%s added to machines table \n", line);
+      token = strtok(line, "\n");
+      add_proc(&lst,token);
+      num_procs++;
     }
-
-    if (line) // release the line pointer
-    {
-      free(line);
-    }
-
-    master_sock = creer_socket(SOCK_STREAM, port_num); // Create a socket with the domain, type and protocol given
-    init_main_addr( &init_addr, port_num); // Initiation of the Server with a certain port
-    do_bind( master_sock, init_addr, sizeof(init_addr)); // Binds a socket to an address
-    listen( master_sock, num_procs);
+    free(line);
+    fclose(fp);
 
     /* creation des fils */
     for(i = 0; i < num_procs ; i++)
@@ -112,12 +101,7 @@ int main(int argc, char *argv[])
         close(STDERR_FILENO);
 
         /* Creation du tableau d'arguments pour le ssh */
-        args = malloc( (argc-3) * sizeof( char));
-
-        for ( j = 3; j <= argc; j++)
-        {
-          strcpy( args[j-3], argv[j]);
-        }
+        newargv( argc, argv, init_addr);
 
         /* jump to new prog : */
         /* execvp("ssh",newargv); */

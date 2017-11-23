@@ -1,6 +1,31 @@
 #include "common_impl.h"
 
-int creer_socket(int type, int *port_num)
+volatile uint64_t num_fils = 0;
+
+int add_proc( list_dsm_proc *lst, char * machine_name)
+{
+  dsm_proc_t *p = (dsm_proc_t *) malloc(sizeof(dsm_proc_t));
+
+  if (p != NULL)
+  {
+    p->machine_name = (char *) malloc((strlen(machine_name) +1) * sizeof(char)); // creates sapce for the nickname
+    if (p->machine_name != NULL)
+    {
+      strcpy( p->machine_name, machine_name);
+      p->next = *lst;
+      *lst = p;
+    }
+    else
+    {
+      free(p);
+      p = NULL;
+    }
+  }
+  return(p != NULL);
+}
+
+
+int creer_socket(int type)
 {
    int fd = socket(AF_INET,type,IPPROTO_TCP); // A socket is created here
    int yes = 1;
@@ -14,22 +39,17 @@ int creer_socket(int type, int *port_num)
    {
      perror("ERROR setting socket options");
    }
-
-   int b = 65535;
-   int a = 1024;
-
-   *port_num = rand()%(b-a) +a;
-
-
    return fd;
 }
 
-void init_main_addr(struct sockaddr_in *serv_addr, int* serv_port) // Initialises the server
+void init_main_addr(struct sockaddr_in *serv_addr) // Initialises the server
 {
   memset(serv_addr, 0, sizeof(struct sockaddr_in));
   serv_addr->sin_family = AF_INET; // Family type is set
-  serv_addr->sin_port = *serv_port; // Port number is set
+  serv_addr->sin_port = 0; // Port number is set
   inet_aton("127.0.0.1", &serv_addr->sin_addr); // IP address is set
+
+  //*serv_port = serv_addr->sin_port;
 }
 
 int do_bind(int serv_sock, struct sockaddr_in serv_addr, int serv_addr_len) // Bind a socket and server_addrese
@@ -42,6 +62,21 @@ int do_bind(int serv_sock, struct sockaddr_in serv_addr, int serv_addr_len) // B
   }
   return( EXIT_SUCCESS );
 }
+
+char * newargv(int argc, char **argv, struct sockaddr_in init_addr)
+{
+  int i;
+  char * arguments = NULL;
+  strcpy(arguments,machine_name);
+  strcat(arguments,"dsmwrap");
+  strcat(arguments, itoa(init_addr->sin_port));
+  strcat(arguments, inet_ntoa(init_addr->sin_addr));
+  for (i = 2; i < argc ; i++) {
+    strcat(arguments, argv[i]);
+  }
+
+}
+
 
 void sigchld_handler( int sig)
 {

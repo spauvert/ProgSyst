@@ -68,13 +68,19 @@ char * newargv(int argc, char **argv, struct sockaddr_in init_addr)
   int i;
   char * arguments = NULL;
   strcpy(arguments,machine_name);
-  strcat(arguments,"dsmwrap");
+  strcat(" ");
+  strcat(arguments,"dsmwrap"); // mettre le chemin abso
+  strcat(" ");
   strcat(arguments, itoa(init_addr->sin_port));
+  strcat(" ");
   strcat(arguments, inet_ntoa(init_addr->sin_addr));
-  for (i = 2; i < argc ; i++) {
-    strcat(arguments, argv[i]);
-  }
 
+  for (i = 2; i < argc ; i++) {
+    strcat(" ");
+    strcat(arguments, argv[i]);
+
+  }
+  return arguments;
 }
 
 

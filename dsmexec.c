@@ -21,9 +21,10 @@ int main(int argc, char *argv[])
 {
 
   pid_t pid;
-  int num_procs = 0, i, j, master_sock, *sock;
+  int num_procs = 0, i, j, master_sock;
+  u_short *sock = NULL;
   struct sockaddr_in init_addr;
-  char **args, *token, *newarguments;
+  char *newargs = NULL, *token;
 
   list_dsm_proc lst = NULL;
   dsm_proc_t *listing1 = NULL;
@@ -48,7 +49,7 @@ int main(int argc, char *argv[])
     /* la machine est un des elements d'identification */
 
     master_sock = creer_socket(SOCK_STREAM); // Create a socket with the domain, type and protocol given
-    init_main_addr( &init_addr, &sock); // Initiation of the Server with a certain port
+    init_main_addr( &init_addr, sock); // Initiation of the Server with a certain port
     do_bind( master_sock, init_addr, sizeof(init_addr)); // Binds a socket to an address
     listen( master_sock, num_procs);
 
@@ -74,6 +75,14 @@ int main(int argc, char *argv[])
     free(line);
     fclose(fp);
 
+    char **tab;
+    tab = malloc ( (argc-2) * sizeof(char*) );
+
+    for ( j = 2 ; j < argc ; j++ ) {
+       tab[j] = strdup(argv[j]) ;
+       printf("%s\n",tab[j]);
+    }
+
     /* creation des fils */
 
     listing1 = lst;
@@ -95,33 +104,38 @@ int main(int argc, char *argv[])
       if (pid == 0) /* fils */
       {
 
-        /* redirection stdout */
-        close(out[0]);
+        // redirection stdout
+        /*close(out[0]);
         dup2(STDOUT_FILENO,out[1]);
         close(STDOUT_FILENO);
 
-        /* redirection stderr */
+        // redirection stderr
         close(err[0]);
         dup2(STDERR_FILENO,err[1]);
-        close(STDERR_FILENO);
+        close(STDERR_FILENO);*/
+        listing1->pid = getpid();
 
-        listing1->pid = 
+        //printf("name:%s, pid: %i\n",listing1->machine_name, listing1->pid);
 
         /* Creation du tableau d'arguments pour le ssh */
-        strcpy(newarguments, newargv( listing1->machine_name, int argc, char **argv, struct sockaddr_in *init_addr));
+
+        strcpy(newargs, newargv( listing1->machine_name, init_addr));
+        printf("%s\n", newargs);
 
         /* jump to new prog : */
-        /* execvp("ssh",newarguments); */
+        /* execvp("ssh",newargs); */
+
         break;
       }
       else
       {
           /* fermeture des extremites des tubes non utiles */
-          close(out[1]);
+          /*close(out[1]);
           dup2(out[0],STDOUT_FILENO);
           close(err[1]);
-          dup2(err[0],STDERR_FILENO);
+          dup2(err[0],STDERR_FILENO);*/
           num_procs_creat++;
+          //printf("num_procs_creat: %i\n",num_procs_creat);
           listing1 = listing1->next;
       }
     }

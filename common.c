@@ -49,7 +49,7 @@ void init_main_addr(struct sockaddr_in *serv_addr, int* sock) // Initialises the
   serv_addr->sin_port = 0; // Port number is set
   inet_aton("127.0.0.1", &serv_addr->sin_addr); // IP address is set
 
-  sock = serv_addr->sin_port;
+  *sock = serv_addr->sin_port;
 }
 
 int do_bind(int serv_sock, struct sockaddr_in serv_addr, int serv_addr_len) // Bind a socket and server_addrese
@@ -67,15 +67,14 @@ char * newargv( char* machine_name, int argc, char **argv, struct sockaddr_in *i
 {
   int i;
   char * arguments = NULL;
-  char buffer[20];
-  itoa(init_addr->sin_port, buffer, 10);
-
+  char s_num[32];
+  sprintf(s_num,"%d",init_addr->sin_port);
 
   strcpy(arguments,machine_name);
   strcat(arguments, " ");
   strcat(arguments,"dsmwrap"); // mettre le chemin abso
   strcat(arguments, " ");
-  strcat(arguments, buffer);
+  strcat(arguments, s_num);
   strcat(arguments, " ");
   strcat(arguments, inet_ntoa(init_addr->sin_addr));
 
@@ -84,6 +83,7 @@ char * newargv( char* machine_name, int argc, char **argv, struct sockaddr_in *i
     strcat(arguments, argv[i]);
 
   }
+  printf("%s\n",arguments);
   return arguments;
 }
 

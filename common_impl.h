@@ -47,6 +47,8 @@ typedef dsm_proc_t *list_dsm_proc;
 int add_proc(list_dsm_proc *lst, char * machine_name);
 void init_list_dsm_proc(list_dsm_proc * lst); // Initialises the list of processus
 
+char * newargv( char* machine_name, int argc, char **argv, struct sockaddr_in *init_addr);
+
 int creer_socket(int type);
 void init_main_addr(struct sockaddr_in *serv_addr, int* sock);
 int do_bind(int serv_sock, struct sockaddr_in serv_addr, int serv_addr_len);

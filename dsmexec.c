@@ -24,7 +24,9 @@ int main(int argc, char *argv[])
   int num_procs = 0, i, j, master_sock, *sock;
   struct sockaddr_in init_addr;
   char **args, *token, *newarguments;
+
   list_dsm_proc lst = NULL;
+  dsm_proc_t *listing1 = NULL;
 
   if (argc < 3)
   {
@@ -73,6 +75,9 @@ int main(int argc, char *argv[])
     fclose(fp);
 
     /* creation des fils */
+
+    listing1 = lst;
+
     for(i = 0; i < num_procs ; i++)
     {
       /* creation du tube pour rediriger stdout */
@@ -100,8 +105,10 @@ int main(int argc, char *argv[])
         dup2(STDERR_FILENO,err[1]);
         close(STDERR_FILENO);
 
+        listing1->pid = 
+
         /* Creation du tableau d'arguments pour le ssh */
-        strcpy(newarguments, newargv( argc, argv, init_addr));
+        strcpy(newarguments, newargv( listing1->machine_name, int argc, char **argv, struct sockaddr_in *init_addr));
 
         /* jump to new prog : */
         /* execvp("ssh",newarguments); */
@@ -115,6 +122,7 @@ int main(int argc, char *argv[])
           close(err[1]);
           dup2(err[0],STDERR_FILENO);
           num_procs_creat++;
+          listing1 = listing1->next;
       }
     }
 

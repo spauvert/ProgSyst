@@ -81,8 +81,6 @@ char * newargv( char* machine_name, struct sockaddr_in init_addr)
   strcat(arguments, " ");
   strcat(arguments, inet_ntoa(init_addr.sin_addr));
 
-  printf("%s\n", arguments);
-
   return arguments;
 }
 

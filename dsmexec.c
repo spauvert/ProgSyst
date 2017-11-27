@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
   int num_procs = 0, i, j, master_sock;
   u_short *sock = NULL;
   struct sockaddr_in init_addr;
-  char *newargs = NULL, *token;
+  char *args1 = NULL, *token;
 
   list_dsm_proc lst = NULL;
   dsm_proc_t *listing1 = NULL;
@@ -79,8 +79,15 @@ int main(int argc, char *argv[])
     tab = malloc ( (argc-2) * sizeof(char*) );
 
     for ( j = 2 ; j < argc ; j++ ) {
-       tab[j] = strdup(argv[j]) ;
-       printf("%s\n",tab[j]);
+       tab[j-2] = strdup(argv[j]) ;
+    }
+
+    char* args2 = malloc (argc*sizeof(char*));
+    memset(args2, 0, sizeof(argc*sizeof(char*)));
+
+    for ( j = 0 ; j < argc-2 ; j++ ) {
+      strcat(args2, " ");
+      strcat(args2, tab[j]);
     }
 
     /* creation des fils */
@@ -103,7 +110,6 @@ int main(int argc, char *argv[])
 
       if (pid == 0) /* fils */
       {
-
         // redirection stdout
         /*close(out[0]);
         dup2(STDOUT_FILENO,out[1]);
@@ -118,10 +124,12 @@ int main(int argc, char *argv[])
         //printf("name:%s, pid: %i\n",listing1->machine_name, listing1->pid);
 
         /* Creation du tableau d'arguments pour le ssh */
+        //printf("%s%s\n", newargv( listing1->machine_name, init_addr), args2);
 
-        strcpy(newargs, newargv( listing1->machine_name, init_addr));
-        printf("%s\n", newargs);
-
+        args1 = (char*) malloc(strlen(newargv( listing1->machine_name, init_addr) ) );
+        strcpy( args1 , newargv( listing1->machine_name, init_addr) );
+        strcat(args1, args2);
+        printf("Arguments to send: %s\n", args1);
         /* jump to new prog : */
         /* execvp("ssh",newargs); */
 

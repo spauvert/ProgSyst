@@ -21,9 +21,9 @@ int main(int argc, char *argv[])
 {
 
   pid_t pid;
-  int num_procs = 0, i, j, master_sock;
+  int num_procs = 0, i, j, master_sock, *sock;
   struct sockaddr_in init_addr;
-  char **args, *token;
+  char **args, *token, *newarguments;
   list_dsm_proc lst = NULL;
 
   if (argc < 3)
@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
     /* la machine est un des elements d'identification */
 
     master_sock = creer_socket(SOCK_STREAM); // Create a socket with the domain, type and protocol given
-    init_main_addr( &init_addr); // Initiation of the Server with a certain port
+    init_main_addr( &init_addr, &sock); // Initiation of the Server with a certain port
     do_bind( master_sock, init_addr, sizeof(init_addr)); // Binds a socket to an address
     listen( master_sock, num_procs);
 
@@ -101,11 +101,11 @@ int main(int argc, char *argv[])
         close(STDERR_FILENO);
 
         /* Creation du tableau d'arguments pour le ssh */
-        newargv( argc, argv, init_addr);
+        strcpy(newarguments, newargv( argc, argv, init_addr));
 
         /* jump to new prog : */
-        /* execvp("ssh",newargv); */
-
+        /* execvp("ssh",newarguments); */
+        break;
       }
       else
       {

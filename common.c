@@ -12,6 +12,8 @@ int add_proc( list_dsm_proc *lst, char * machine_name)
     if (p->machine_name != NULL)
     {
       strcpy( p->machine_name, machine_name);
+      p->connect_info.rank = 0;
+      p->pid = 0;
       p->next = *lst;
       *lst = p;
     }
@@ -24,32 +26,36 @@ int add_proc( list_dsm_proc *lst, char * machine_name)
   return(p != NULL);
 }
 
-
-int creer_socket(int type)
+int creer_socket(int type, int *port_num)
 {
-   int fd = socket(AF_INET,type,IPPROTO_TCP); // A socket is created here
-   int yes = 1;
-
-   if (fd == -1) // if there is an error, then
-   {
-     perror( "Error socket couldnt be created" ); // a message will be sent
-   }
-
-   if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
-   {
-     perror("ERROR setting socket options");
-   }
-   return fd;
+  return 0;
 }
 
-void init_main_addr(struct sockaddr_in *serv_addr, u_short* sock) // Initialises the server
+int do_socket(int domain, int type, int protocol) // Creates a socket
 {
-  memset(serv_addr, 0, sizeof(struct sockaddr_in));
-  serv_addr->sin_family = AF_INET; // Family type is set
-  serv_addr->sin_port = 0; // Port number is set
-  inet_aton("127.0.0.1", &serv_addr->sin_addr); // IP address is set
+  int sock = socket(domain,type,protocol); // A socket is created here
+  int yes = 1;
 
-  sock = &serv_addr->sin_port;
+  if (sock == -1) // if there is an error, then
+  {
+    perror( "Error socket couldnt be created" ); // a message will be sent
+  }
+
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
+  {
+    perror("ERROR setting socket options");
+  }
+
+  printf("Socket created!\n");
+  return sock;
+}
+
+void init_main_addr(struct sockaddr_in *serv_addr) // Initialises the server
+{
+  memset(serv_addr, 0, sizeof(*serv_addr));
+  serv_addr->sin_family = AF_INET; // Family type is set
+  serv_addr->sin_port = htons(atoi("0")); // Port number is set
+  serv_addr->sin_addr.s_addr = INADDR_ANY; // IP address is set
 }
 
 int do_bind(int serv_sock, struct sockaddr_in serv_addr, int serv_addr_len) // Bind a socket and server_addrese
@@ -63,25 +69,78 @@ int do_bind(int serv_sock, struct sockaddr_in serv_addr, int serv_addr_len) // B
   return( EXIT_SUCCESS );
 }
 
-char * newargv( char* machine_name, struct sockaddr_in init_addr)
+int do_accept(int sock, struct sockaddr_in *addr, socklen_t * addr_len) // accepts a client that wants to join the server
 {
-  char * arguments = malloc( 5* sizeof(char *));
-  char s_num[32];
+  int serv_accept = accept(sock, (struct sockaddr *) &addr, addr_len); // after listening on the socket, once it picks up a signal it can accept it
 
-  sprintf(s_num,"%d",init_addr.sin_port);
+  if ( serv_accept == -1 )  // if there is an error, then ...
+  {
+    perror( "do_accept:"); // an message is sent
+  }
 
-  strcpy(arguments,machine_name);
+  return serv_accept;
+}
 
-  strcat(arguments, " ");
-  strcat(arguments,"dsmwrap"); // mettre le chemin abso
+ssize_t send_line(int fd, void *buf, size_t len) // Sends a message
+{
+  int nleft;
+  int nwritten;
+  char * ptr;
+  ptr = buf;
+  nleft = len;
 
-  strcat(arguments, " ");
-  strcat(arguments, s_num);
+  while( nleft > 0 ) // we go through the length of the message
+  {
+    if( (nwritten = write(fd, ptr, nleft)) <= 0) // nwritten amount of the message will be sent at a time,
+    {
+      if(errno == EINTR)
+      {
+        nwritten = 0;
+        perror("");
+      }
+      return -1;
+    }
+    nleft -= nwritten; // we remove the amount sent from the amount to be sent
+    ptr += nwritten; // we had the amount sent to the pointer on the beginning of the message
+  }
+  return len;
+}
 
-  strcat(arguments, " ");
-  strcat(arguments, inet_ntoa(init_addr.sin_addr));
+ssize_t read_line(int fd, char * buf, size_t len) // sends a message
+{
+  int i;
+  char c;
+  int ret;
+  char * ptr;
+  ptr = buf;
+  int cnt = 0;
 
-  return arguments;
+  for (i = 0 ; i < len; i++) // we go through one by one til the end of the max length of a message
+  {
+
+    ret = read(fd, &c, 1); // We read the message received letter by letter one at a time
+
+    if( ret == 1 )
+    {
+      ptr[cnt++] = c; // the letter is put into ptr
+
+      if( c == '\n') // if we reach a \n ( = "enter" on keybard"), we leave the loop
+      {
+        ptr[cnt] = '\0';
+        return i+1;
+        break;
+      }
+    }
+    else if( 0 == ret  ) // we reach the end of the message, we leave the loop
+    {
+
+      ptr[cnt] = '\0';
+      break;
+    }
+  }
+  ptr[len] = '\0';
+
+  return i;
 }
 
 

@@ -4,7 +4,9 @@
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
-dsm_proc_t *proc_array = NULL;
+
+// dsm_proc_t *proc_array = NULL;
+
 /* le nombre de processus effectivement crees */
 volatile int num_procs_creat = 0;
 //typedef char nom_machines_t[20];
@@ -19,15 +21,15 @@ void usage(void)
 
 int main(int argc, char *argv[])
 {
-
+  struct sockaddr_in init_addr, client_addr;
+  char *token, message[ MAX_LENGTH], **newargv = NULL;;
+  struct hostent *res;
+  fd_set readfds;
+  int num_procs = 0, i, j, master_sock, new_socket, max_sock;
+  socklen_t client_addr_len = sizeof(client_addr);
   pid_t pid;
-  int num_procs = 0, i, j, master_sock;
-  u_short *sock = NULL;
-  struct sockaddr_in init_addr;
-  char *args1 = NULL, *token;
-
   list_dsm_proc lst = NULL;
-  dsm_proc_t *listing1 = NULL;
+  dsm_proc_t *listing1 = NULL, *listing2 = NULL;
 
   if (argc < 3)
   {
@@ -47,11 +49,6 @@ int main(int argc, char *argv[])
     /* 1- on recupere le nombre de processus a lancer */
     /* 2- on recupere les noms des machines : le nom de */
     /* la machine est un des elements d'identification */
-
-    master_sock = creer_socket(SOCK_STREAM); // Create a socket with the domain, type and protocol given
-    init_main_addr( &init_addr, sock); // Initiation of the Server with a certain port
-    do_bind( master_sock, init_addr, sizeof(init_addr)); // Binds a socket to an address
-    listen( master_sock, num_procs);
 
     FILE * fp; // pointer on the file
     //FILE * start;
@@ -75,20 +72,10 @@ int main(int argc, char *argv[])
     free(line);
     fclose(fp);
 
-    char **tab;
-    tab = malloc ( (argc-2) * sizeof(char*) );
-
-    for ( j = 2 ; j < argc ; j++ ) {
-       tab[j-2] = strdup(argv[j]) ;
-    }
-
-    char* args2 = malloc (argc*sizeof(char*));
-    memset(args2, 0, sizeof(argc*sizeof(char*)));
-
-    for ( j = 0 ; j < argc-2 ; j++ ) {
-      strcat(args2, " ");
-      strcat(args2, tab[j]);
-    }
+    master_sock = do_socket( AF_INET, SOCK_STREAM, IPPROTO_TCP);  // Create a socket with the domain, type and protocol given
+    init_main_addr( &init_addr); // Initiation of the Server with a certain port
+    do_bind( master_sock, init_addr, sizeof(init_addr)); // Binds a socket to an address
+    listen( master_sock, num_procs);
 
     /* creation des fils */
 
@@ -124,14 +111,30 @@ int main(int argc, char *argv[])
         //printf("name:%s, pid: %i\n",listing1->machine_name, listing1->pid);
 
         /* Creation du tableau d'arguments pour le ssh */
-        //printf("%s%s\n", newargv( listing1->machine_name, init_addr), args2);
 
-        args1 = (char*) malloc(strlen(newargv( listing1->machine_name, init_addr) ) );
-        strcpy( args1 , newargv( listing1->machine_name, init_addr) );
-        strcat(args1, args2);
-        printf("Arguments to send: %s\n", args1);
+        newargv = malloc((argc+4)*sizeof(char*));
+        for ( j = 0; j < argc+3; j++)
+        {
+          newargv[j] = malloc(sizeof(char));
+        }
+
+        sprintf(newargv[0], "ssh"); // ssh
+        sprintf(newargv[1], "%s", listing1->machine_name); // nom de la machine
+        sprintf(newargv[2], "dsmwrap");
+        sprintf(newargv[3], "%s", inet_ntoa(init_addr.sin_addr)); // @IP de la machine
+        sprintf(newargv[4], "%d", init_addr.sin_port); // Numero du port machine
+        sprintf(newargv[5], "%s", argv[2]); // prog à executer
+
+        if (argc > 3)
+        {
+          for (j = 0; j < argc-3; j++)
+          {
+            newargv[6+j] = argv[j+3];
+          }
+        }
+
         /* jump to new prog : */
-        /* execvp("ssh",newargs); */
+        /* execvp("ssh",newargv); */
 
         break;
       }
@@ -148,27 +151,95 @@ int main(int argc, char *argv[])
       }
     }
 
+    FD_ZERO(&readfds); //Clears the socket set
+    FD_SET(master_sock, &readfds); //Add the server's main socket
+    max_sock = master_sock;
 
-    for(i = 0; i < num_procs ; i++)
+    for (i = 0; i < num_procs ; i++)
     {
+      listing1 = lst;
 
-      /* on accepte les connexions des processus dsm */
+      if (select( max_sock + 1 , &readfds , NULL , NULL , NULL) < 0) // Select a socket where there is "mouvement" or activity
+      {
+        perror("select");
+      }
 
-      /*  On recupere le nom de la machine distante */
-      /* 1- d'abord la taille de la chaine */
-      /* 2- puis la chaine elle-meme */
+      if (FD_ISSET(master_sock, &readfds)) // If something happens on the master socket (aka serv_sock), then it means there is an incoming connection
+      {
+        /* on accepte les connexions des processus dsm */
+        new_socket =  do_accept( master_sock, &client_addr, &client_addr_len);
 
-      /* On recupere le pid du processus distant  */
+        /*  On recupere le nom de la machine distante */
+        res = gethostbyaddr(&client_addr.sin_addr, sizeof(client_addr.sin_addr), AF_INET);
 
-      /* On recupere le numero de port de la socket */
-      /* d'ecoute des processus distants */
+        /* 1- d'abord la taille de la chaine */
+        char * distant_mach_name = (char *) malloc((strlen(res->h_name) +1) * sizeof(char));
+
+        /* 2- puis la chaine elle-meme */
+        strcpy(distant_mach_name, res->h_name);
+
+        while ( strcmp(listing1->machine_name, distant_mach_name) != 0 ) {
+          listing1 = listing1->next;
+        }
+
+        /* On recupere le pid du processus distant  */
+        read = read_line( new_socket, message, MAX_LENGTH);
+
+        while( listing1 != NULL )
+        {
+          if (strcmp(listing1->machine_name, distant_mach_name) == 0 && listing1->connect_info.rank == 0)
+          {
+            /* On recupere le numero de port de la socket */
+            /* d'ecoute des processus distants */
+            listing1->pid = atoi(message);
+            listing1->connect_info.rank = i;
+            listing1->connect_info.dsm_addr = client_addr.sin_addr;
+            listing1->connect_info.dsm_port_num = client_addr.sin_port;
+            listing1->sock = new_socket;
+            FD_SET(new_socket, &readfds);
+            break;
+          }
+          else
+          {
+            listing1 = listing1->next;
+          }
+        }
+        if (listing1 == NULL)
+        {
+          close(new_socket);
+        }
+        memset( message, 0, sizeof(message));
+      }
     }
+    for (i = 0; i < num_procs ; i++)
+    {
+      listing2 = lst;
+      /* envoi du nombre de processus aux processus dsm*/
+      sprintf(message, "%i", num_procs_creat);
+      send_line(listing1->sock, message, sizeof(message));
 
-    /* envoi du nombre de processus aux processus dsm*/
+      /* envoi des rangs aux processus dsm */
+      sprintf(message, "%i", listing1->connect_info.rank);
+      send_line(listing1->sock, message, sizeof(message));
 
-    /* envoi des rangs aux processus dsm */
+      /* envoi des infos de connexion aux processus */
+      for (j = 0; j < num_procs; j++) {
+        if ( strcmp(listing1->machine_name,listing2->machine_name) != 0)
+        {
+          sprintf(message, "%i", listing1->connect_info.rank);
+          send_line(listing2->sock, message, sizeof(message));
 
-    /* envoi des infos de connexion aux processus */
+          sprintf(message, "%s", inet_ntoa (listing1->connect_info.dsm_addr));
+          send_line(listing2->sock, message, sizeof(message));
+
+          sprintf(message, "%i", listing1->connect_info.dsm_port_num);
+          send_line(listing2->sock, message, sizeof(message));
+        }
+        listing2 = listing2->next;
+      }
+
+      listing1 = listing1->next;
+    }
 
     /* gestion des E/S : on recupere les caracteres */
     /* sur les tubes de redirection de stdout/stderr */

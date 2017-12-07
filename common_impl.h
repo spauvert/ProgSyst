@@ -55,9 +55,7 @@ int do_bind(int serv_sock, struct sockaddr_in serv_addr, int serv_addr_len);
 int do_accept(int sock, struct sockaddr_in *addr, socklen_t * addr_len);
 
 ssize_t send_line(int fd, void *buf, size_t len);
-ssize_t read_line(int fd, char * buf, size_t len);
-
-void sigchld_handler( int sig);
+ssize_t read_line(int fd, void * buf, size_t len);
 
 /* Vous pouvez ecrire ici toutes les fonctions */
 /* qui pourraient etre utilisees par le lanceur */

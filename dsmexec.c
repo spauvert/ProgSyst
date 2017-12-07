@@ -18,11 +18,18 @@ void usage(void)
   exit(EXIT_FAILURE);
 }
 
+void sigchld_handler( int sig)
+{
+  while (waitpid( -1, NULL, WNOHANG) < 0)
+  {
+      num_procs_creat--;
+  }
+}
 
 int main(int argc, char *argv[])
 {
   struct sockaddr_in init_addr, client_addr;
-  char *token, message[ MAX_LENGTH], **newargv = NULL;;
+  char *token, message[ MAX_LENGTH], **newargv = NULL, * line = NULL, str[1024], exec_path[1024], *wd_ptr = NULL;
   struct hostent *res;
   fd_set readfds;
   int num_procs = 0, i, j, master_sock, new_socket, max_sock;
@@ -30,6 +37,9 @@ int main(int argc, char *argv[])
   pid_t pid;
   list_dsm_proc lst = NULL;
   dsm_proc_t *listing1 = NULL, *listing2 = NULL;
+  FILE * fp;
+  size_t len = 0;
+  ssize_t read;
 
   if (argc < 3)
   {
@@ -42,28 +52,27 @@ int main(int argc, char *argv[])
 
     struct sigaction action;
     memset( &action, 0, sizeof( struct sigaction));
-    action.sa_handler = sigchld_handler; // pas besoin de parametre c'est un pointeur de fonction
+    action.sa_handler = sigchld_handler;
     sigaction( SIGCHLD, &action, NULL);
 
     /* lecture du fichier de machines */
-    /* 1- on recupere le nombre de processus a lancer */
-    /* 2- on recupere les noms des machines : le nom de */
-    /* la machine est un des elements d'identification */
 
-    FILE * fp; // pointer on the file
-    //FILE * start;
-    char * line = NULL; // pointer on the beginning of the line in the file
-    size_t len = 0; // length of the line
-    ssize_t read; // number of read characters
-
-    fp = fopen("./machine_file", "r");
+    wd_ptr = getcwd(str,1024);
+    sprintf(exec_path,"%s/%s",str,argv[1]);
+    fp = fopen(exec_path, "r");
 
     if (fp == NULL)
     {
       exit(EXIT_FAILURE);
     }
 
-    while ((read = getline(&line, &len, fp)) != -1) // add machines to the table
+    /*
+    1- on recupere le nombre de processus a lancer
+    2- on recupere les noms des machines : le nom de
+    la machine est un des elements d'identification
+    */
+
+    while ((read = getline(&line, &len, fp)) != -1)
     {
       token = strtok(line, "\n");
       add_proc(&lst,token);
@@ -72,30 +81,35 @@ int main(int argc, char *argv[])
     free(line);
     fclose(fp);
 
-    master_sock = do_socket( AF_INET, SOCK_STREAM, IPPROTO_TCP);  // Create a socket with the domain, type and protocol given
-    init_main_addr( &init_addr); // Initiation of the Server with a certain port
-    do_bind( master_sock, init_addr, sizeof(init_addr)); // Binds a socket to an address
+    /* Socket Creation */
+
+    master_sock = do_socket( AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    init_main_addr( &init_addr);
+    printf("%s and %u\n", inet_ntoa(init_addr.sin_addr), ntohs(init_addr.sin_port));
+    do_bind( master_sock, init_addr, sizeof(init_addr));
     listen( master_sock, num_procs);
 
-    /* creation des fils */
+    return (0);
+
+    /* Son Creation */
 
     listing1 = lst;
 
     for(i = 0; i < num_procs ; i++)
     {
       /* creation du tube pour rediriger stdout */
-      int out[2];
-      pipe(out);
+      //int out[2];
+      //pipe(out);
 
       /* creation du tube pour rediriger stderr */
-      int err[2];
-      pipe(err);
+      //int err[2];
+      //pipe(err);
 
       pid = fork();
 
       if(pid == -1) ERROR_EXIT("fork");
 
-      if (pid == 0) /* fils */
+      if (pid == 0) /* Son */
       {
         // redirection stdout
         /*close(out[0]);
@@ -115,31 +129,40 @@ int main(int argc, char *argv[])
         newargv = malloc((argc+4)*sizeof(char*));
         for ( j = 0; j < argc+3; j++)
         {
-          newargv[j] = malloc(sizeof(char));
+          newargv[j] = malloc(200*sizeof(char));
         }
 
         sprintf(newargv[0], "ssh"); // ssh
         sprintf(newargv[1], "%s", listing1->machine_name); // nom de la machine
-        sprintf(newargv[2], "dsmwrap");
+        sprintf(newargv[2], "%s/%s",str,"./bin/dsmwrap");
         sprintf(newargv[3], "%s", inet_ntoa(init_addr.sin_addr)); // @IP de la machine
-        sprintf(newargv[4], "%d", init_addr.sin_port); // Numero du port machine
+        sprintf(newargv[4], "%d", ntohs(init_addr.sin_port)); // Numero du port machine
         sprintf(newargv[5], "%s", argv[2]); // prog à executer
 
         if (argc > 3)
         {
           for (j = 0; j < argc-3; j++)
           {
-            newargv[6+j] = argv[j+3];
+            newargv[6+j] = argv[j+3]; // The other arguments
           }
         }
+        printf("%s\n",newargv[0] );
+        printf("%s\n",newargv[1] );
+        printf("%s\n",newargv[2] );
+        printf("%s\n",newargv[3] );
+        printf("%s\n",newargv[4] );
+        printf("%s\n",newargv[5] );
 
-        /* jump to new prog : */
-        /* execvp("ssh",newargv); */
 
-        break;
+        /* jump to new prog :*/
+       if (execvp(newargv[0], newargv) == -1)
+       {
+         ERROR_EXIT("exec child dsmexec");
+       }
       }
-      else
+      else // Father
       {
+        if (pid > 0){
           /* fermeture des extremites des tubes non utiles */
           /*close(out[1]);
           dup2(out[0],STDOUT_FILENO);
@@ -148,6 +171,7 @@ int main(int argc, char *argv[])
           num_procs_creat++;
           //printf("num_procs_creat: %i\n",num_procs_creat);
           listing1 = listing1->next;
+        }
       }
     }
 
@@ -161,7 +185,7 @@ int main(int argc, char *argv[])
 
       if (select( max_sock + 1 , &readfds , NULL , NULL , NULL) < 0) // Select a socket where there is "mouvement" or activity
       {
-        perror("select");
+        ERROR_EXIT("select");
       }
 
       if (FD_ISSET(master_sock, &readfds)) // If something happens on the master socket (aka serv_sock), then it means there is an incoming connection

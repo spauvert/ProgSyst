@@ -26,9 +26,17 @@ int add_proc( list_dsm_proc *lst, char * machine_name)
   return(p != NULL);
 }
 
-int creer_socket(int type, int *port_num)
+int creer_socket(int prop, int *port_num)
 {
-  return 0;
+  struct sockaddr_in init_addr;
+
+  int sock = do_socket( AF_INET, prop, IPPROTO_TCP);  // Create a socket with the domain, type and protocol given
+  init_main_addr( &init_addr); // Initiation of the Server with a certain port
+  do_bind( sock, init_addr, sizeof(init_addr)); // Binds a socket to an address
+
+  *port_num = ntohs(init_addr.sin_port);
+
+  return sock;
 }
 
 int do_socket(int domain, int type, int protocol) // Creates a socket
@@ -38,15 +46,14 @@ int do_socket(int domain, int type, int protocol) // Creates a socket
 
   if (sock == -1) // if there is an error, then
   {
-    perror( "Error socket couldnt be created" ); // a message will be sent
+    ERROR_EXIT( "Error socket couldnt be created" ); // a message will be sent
   }
 
   if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1)
   {
-    perror("ERROR setting socket options");
+    ERROR_EXIT("ERROR setting socket options");
   }
 
-  printf("Socket created!\n");
   return sock;
 }
 
@@ -54,8 +61,8 @@ void init_main_addr(struct sockaddr_in *serv_addr) // Initialises the server
 {
   memset(serv_addr, 0, sizeof(*serv_addr));
   serv_addr->sin_family = AF_INET; // Family type is set
-  serv_addr->sin_port = htons(atoi("0")); // Port number is set
-  serv_addr->sin_addr.s_addr = INADDR_ANY; // IP address is set
+  serv_addr->sin_port = htons(0); // Port number is set
+  serv_addr->sin_addr.s_addr = htons(INADDR_ANY); // IP address is set
 }
 
 int do_bind(int serv_sock, struct sockaddr_in serv_addr, int serv_addr_len) // Bind a socket and server_addrese
@@ -106,7 +113,7 @@ ssize_t send_line(int fd, void *buf, size_t len) // Sends a message
   return len;
 }
 
-ssize_t read_line(int fd, char * buf, size_t len) // sends a message
+ssize_t read_line(int fd, void * buf, size_t len) // sends a message
 {
   int i;
   char c;
@@ -141,28 +148,6 @@ ssize_t read_line(int fd, char * buf, size_t len) // sends a message
   ptr[len] = '\0';
 
   return i;
-}
-
-
-void sigchld_handler( int sig)
-{
-  /* on traite les fils qui se terminent */
-  /* pour eviter les zombies */
-  pid_t pid;
-
-  sigset_t mask, add;
-  sigemptyset(&mask); // Declaration du mask et initialisation
-  sigaddset(&add, SIGCHLD);
-
-  do
-  {
-    pid = waitpid( -1, NULL, WNOHANG);
-    if ( pid > 0 )
-    {
-      num_fils--;
-    }
-  } while( pid > 0 );
-
 }
 
 /* Vous pouvez ecrire ici toutes les fonctions */
